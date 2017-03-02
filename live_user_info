@@ -19,7 +19,7 @@ for i in results:
 proxies={
     'http':str(random.choice(IP_POOL)).replace('(','').replace(')','').replace(',','').replace("'",'')
 }
-conn_live=sqlite3.connect('/Users/yohane/Documents/DataBase/Bilibili_live_info.db')
+conn_live=sqlite3.connect('')
 cursor_live=conn_live.cursor()
 cursor_live.execute('DELETE FROM LIVE_INFO')
 live_url=('http://api.live.bilibili.com/live/getInfo?roomid={}')
