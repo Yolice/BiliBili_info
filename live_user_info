@@ -1,0 +1,141 @@
+import requests
+import json
+import time
+import sqlite3
+import random
+from multiprocessing import Process
+from bs4 import BeautifulSoup
+conn=sqlite3.connect('')
+cursor=conn.cursor()
+proxies_conn=sqlite3.connect('')
+proxies_cursor=proxies_conn.cursor()
+results=proxies_cursor.execute('SELECT * FROM IP_POOL')
+IP_POOL=[]
+for ip_address in results:
+     IP_POOL.append(ip_address)
+cursor.execute('DELETE FROM USER_INFO')
+for i in results:
+     IP_POOL.append(i)
+proxies={
+    'http':str(random.choice(IP_POOL)).replace('(','').replace(')','').replace(',','').replace("'",'')
+}
+conn_live=sqlite3.connect('/Users/yohane/Documents/DataBase/Bilibili_live_info.db')
+cursor_live=conn_live.cursor()
+cursor_live.execute('DELETE FROM LIVE_INFO')
+live_url=('http://api.live.bilibili.com/live/getInfo?roomid={}')
+live_tag='http://live.bilibili.com/{}'
+HEADER = {
+    'User-Agent':'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+    'Accept-Language':'zh-CN,zh;q=0.8,en;q=0.6',
+    'Connection': 'keep-alive',
+    'Accept-Encoding': 'gzip, deflate, sdch'
+}
+HEADER_JSON={
+    'Accept':'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+    'Accept-Encoding':'gzip, deflate, sdch',
+    'Accept-Language':'zh-CN,zh;q=0.8,en;q=0.6',
+    'Cache-Control':'max-age=0',
+    'Host':'api.live.bilibili.com',
+    'Upgrade-Insecure-Requests':1,
+    'User-Agent':'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36'
+}
+
+headers={
+    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36',
+    'X-Requested-With': 'XMLHttpRequest',
+    'Referer': 'http://space.bilibili.com/12132144/',
+    'Origin': 'http://space.bilibili.com',
+    'Host': 'space.bilibili.com',
+    'Accept': 'application/json, text/javascript, */*; q=0.01',
+    'Accept-Encoding':'gzip, deflate',
+    'Accept-Language':'zh-CN,zh;q=0.8,en;q=0.6',
+}
+def Get_time():
+    current_time = int(round(time.time() * 1000))
+    return current_time
+
+def Get_user_info():
+    for User_counts in range(100,200):
+        data_list={
+            'mid':User_counts,
+            '_':Get_time()
+        }
+        target_url='http://space.bilibili.com/ajax/member/GetInfo'
+        wb_data=requests.post(target_url,data=data_list,headers=headers)
+        '''
+        try:
+            wb_data=requests.post(target_url,data=data_list,headers=headers
+        except ConnectionError:
+            wb_data=requests.post(target_url,data=data_list,headers=headers,proxies=proxies)   这里挂代理行不通,水平有限修正不了.
+        '''
+        info_list=json.loads(wb_data.content.decode('utf-8'))
+        try:
+            if info_list['status']==True:
+                face_img=info_list['data']['face']
+                name=info_list['data']['name']
+                uid=info_list['data']['mid']
+                sex=info_list['data']['sex']
+                sign=info_list['data']['sign']
+                desc=info_list['data']['official_verify']['desc']
+                place=info_list['data']['place']
+                fans=info_list['data']['fans']
+                focus=info_list['data']['friend']
+                birthday=info_list['data']['birthday']
+                level_info=info_list['data']['level_info']['current_level']
+                regtime=time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(info_list['data']['regtime']))
+        except :
+            pass
+            '''print(str(e)+"is None")'''
+        try:
+            cursor.execute("INSERT INTO USER_INFO(face_img) VALUES ('%s')" %face_img)
+            cursor.execute("INSERT INTO USER_INFO(name) VALUES ('%s')" %name)
+            cursor.execute("INSERT INTO USER_INFO(udi) VALUES ('%s')" %uid)
+            cursor.execute("INSERT INTO USER_INFO(sex) VALUES ('%s')" %sex)
+            cursor.execute("INSERT INTO USER_INFO(sign) VALUES ('%s')" %sign)
+            cursor.execute("INSERT INTO USER_INFO(desc) VALUES ('%s')" %desc)
+            cursor.execute("INSERT INTO USER_INFO(place) VALUES ('%s')" %place)
+            cursor.execute("INSERT INTO USER_INFO(fans) VALUES ('%s')" %fans)
+            cursor.execute("INSERT INTO USER_INFO(focus) VALUES ('%s')" %focus)
+            cursor.execute("INSERT INTO USER_INFO(birthday) VALUES ('%s')" %birthday)
+            cursor.execute("INSERT INTO USER_INFO(level_info) VALUES ('%s')" %level_info)
+            cursor.execute("INSERT INTO USER_INFO(regtime) VALUES ('%s')" %regtime)
+        except :
+            pass
+
+def Get_Live_info():
+    try:
+        for roomid in range(50180,50190):
+            wb_data=requests.get(live_url.format(roomid)).content
+            wb=requests.get(live_tag.format(roomid),headers=HEADER)
+            soup=BeautifulSoup(wb.text,'lxml')
+            live_tag_select=soup.find_all('div',class_='live-tag')
+            for result in live_tag_select:
+                if result:
+                    cursor_live.execute("INSERT INTO LIVE_INFO(TAG) VALUES ('%s')" %(result.get_text()))
+            live_info=json.loads(wb_data.decode('utf-8'))
+            if live_info['code']!=-400:
+                fans=live_info['data']['FANS_COUNT']
+                name=live_info['data']['ANCHOR_NICK_NAME']
+                gift_counts=live_info['data']['RCOST']
+                cursor_live.execute("INSERT INTO LIVE_INFO(FANS) VALUES ('%s')" %(fans))
+                cursor_live.execute("INSERT INTO LIVE_INFO(NAME ) VALUES ('%s')" %(name))
+                cursor_live.execute("INSERT INTO LIVE_INFO(GIFTS) VALUES ('%s')" %(gift_counts))
+    except:
+        pass
+
+Procs=Process(target=Get_Live_info())
+p=Process(target=Get_user_info())
+p.start()
+p.join()
+Procs.start()
+Procs.join()
+cursor_live.close()
+conn_live.commit()
+conn_live.close()
+proxies_cursor.close()
+proxies_conn.commit()
+proxies_conn.close()
+cursor.close()
+conn.commit()
+conn.close()
