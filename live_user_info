@@ -5,7 +5,6 @@ import sqlite3
 #import random
 from multiprocessing import Process
 from bs4 import BeautifulSoup
-List_Tag=[]
 conn_live=sqlite3.connect('/Users/yohane/Documents/DataBase/Bilibili_live_info.db')
 cursor_live=conn_live.cursor()
 live_url=('http://api.live.bilibili.com/live/getInfo?roomid={}')
@@ -92,29 +91,33 @@ def Get_user_info():
 def Get_Live_info():
     try:
         for roomid in range(1001,1201):
+            List_Tag=[]
             wb_data=requests.get(live_url.format(roomid)).content
             wb=requests.get(live_tag.format(roomid),headers=HEADER)
             soup=BeautifulSoup(wb.text,'lxml')
             live_tag_select=soup.find_all('div',class_='live-tag')
             live_category=soup.find('a',class_='bili-link').text
-            for result in live_tag_select:
-                if result:
-                    List_Tag.append(result.text)
+            if live_tag_select:
+                for result in live_tag_select:
+                    if result:
+                        List_Tag.append(result.text)
             live_info=json.loads(wb_data.decode('utf-8'))
-            TAGS='&&'.join(List_Tag)
+            TAGS=' '.join(List_Tag)
             if live_info['code']!=-400:
                 fans=live_info['data']['FANS_COUNT']
                 name=live_info['data']['ANCHOR_NICK_NAME']
                 gift_counts=live_info['data']['RCOST']
                 cursor_live.execute("INSERT INTO LIVE_INFO(FANS,NAME,GIFTS,TAG,category) VALUES (?,?,?,?,?)",(fans,name,gift_counts,TAGS,live_category))
+            List_Tag=[]
+            TAGS=''
     except:
         pass
 Procs=Process(target=Get_Live_info())
-p=Process(target=Get_user_info())
+#p=Process(target=Get_user_info())
 Procs.start()
-p.start()
+#p.start()
 Procs.join()
-p.join()
+#p.join()
 '''
 proxies_cursor.close()
 proxies_conn.commit()
