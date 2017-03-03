@@ -70,8 +70,8 @@ def Get_user_info():
         except ConnectionError:
             wb_data=requests.post(target_url,data=data_list,headers=headers,proxies=proxies)   这里挂代理行不通,水平有限修正不了.
         '''
-        info_list=json.loads(wb_data.content.decode('utf-8'))
         try:
+            info_list=json.loads(wb_data.content.decode('utf-8'))
             if info_list['status']==True:
                 face_img=info_list['data']['face']
                 name=info_list['data']['name']
@@ -85,12 +85,9 @@ def Get_user_info():
                 birthday=info_list['data']['birthday']
                 level_info=info_list['data']['level_info']['current_level']
                 regtime=time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(info_list['data']['regtime']))
+                cursor.execute("INSERT INTO USER_INFO(face_img,name,udi,sex,sign,desc,place,fans,focus,birthday,level_info,regtime) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",(face_img,name,uid,sex,sign,desc,place,fans,focus,birthday,level_info,regtime))
         except :
-            pass
             '''print(str(e)+"is None")'''
-        try:
-            cursor.execute("INSERT INTO USER_INFO(face_img,name,udi,sex,sign,desc,place,fans,focus,birthday,level_info,regtime) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",(face_img,name,uid,sex,sign,desc,place,fans,focus,birthday,level_info,regtime))
-        except:
             pass
 def Get_Live_info():
     try:
