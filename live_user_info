@@ -5,7 +5,7 @@ import sqlite3
 #import random
 from multiprocessing import Process
 from bs4 import BeautifulSoup
-List_Tag=''
+List_Tag=[]
 conn_live=sqlite3.connect('/Users/yohane/Documents/DataBase/Bilibili_live_info.db')
 cursor_live=conn_live.cursor()
 live_url=('http://api.live.bilibili.com/live/getInfo?roomid={}')
@@ -99,13 +99,14 @@ def Get_Live_info():
             live_category=soup.find('a',class_='bili-link').text
             for result in live_tag_select:
                 if result:
-                    List_Tag=' '+result.text+' '
+                    List_Tag.append(result.text)
             live_info=json.loads(wb_data.decode('utf-8'))
+            TAGS='&&'.join(List_Tag)
             if live_info['code']!=-400:
                 fans=live_info['data']['FANS_COUNT']
                 name=live_info['data']['ANCHOR_NICK_NAME']
                 gift_counts=live_info['data']['RCOST']
-                cursor_live.execute("INSERT INTO LIVE_INFO(FANS,NAME,GIFTS,TAG,category) VALUES (?,?,?,?,?)",(fans,name,gift_counts,List_Tag,live_category))
+                cursor_live.execute("INSERT INTO LIVE_INFO(FANS,NAME,GIFTS,TAG,category) VALUES (?,?,?,?,?)",(fans,name,gift_counts,TAGS,live_category))
     except:
         pass
 Procs=Process(target=Get_Live_info())
