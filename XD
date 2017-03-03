@@ -5,6 +5,7 @@ import sqlite3
 #import random
 from multiprocessing import Process
 from bs4 import BeautifulSoup
+List_Tag=''
 conn_live=sqlite3.connect('/Users/yohane/Documents/DataBase/Bilibili_live_info.db')
 cursor_live=conn_live.cursor()
 live_url=('http://api.live.bilibili.com/live/getInfo?roomid={}')
@@ -56,7 +57,7 @@ headers={
     'Accept-Language':'zh-CN,zh;q=0.8,en;q=0.6'
 }
 def Get_user_info():
-    for User_counts in range(1,100):
+    for User_counts in range(1,1000):
         data_list={
             'mid':User_counts,
             '_':Get_time()
@@ -88,19 +89,8 @@ def Get_user_info():
             pass
             '''print(str(e)+"is None")'''
         try:
-            cursor.execute("INSERT INTO USER_INFO(face_img) VALUES ('%s')" %face_img)
-            cursor.execute("INSERT INTO USER_INFO(name) VALUES ('%s')" %name)
-            cursor.execute("INSERT INTO USER_INFO(udi) VALUES ('%s')" %uid)
-            cursor.execute("INSERT INTO USER_INFO(sex) VALUES ('%s')" %sex)
-            cursor.execute("INSERT INTO USER_INFO(sign) VALUES ('%s')" %sign)
-            cursor.execute("INSERT INTO USER_INFO(desc) VALUES ('%s')" %desc)
-            cursor.execute("INSERT INTO USER_INFO(place) VALUES ('%s')" %place)
-            cursor.execute("INSERT INTO USER_INFO(fans) VALUES ('%s')" %fans)
-            cursor.execute("INSERT INTO USER_INFO(focus) VALUES ('%s')" %focus)
-            cursor.execute("INSERT INTO USER_INFO(birthday) VALUES ('%s')" %birthday)
-            cursor.execute("INSERT INTO USER_INFO(level_info) VALUES ('%s')" %level_info)
-            cursor.execute("INSERT INTO USER_INFO(regtime) VALUES ('%s')" %regtime)
-        except :
+            cursor.execute("INSERT INTO USER_INFO(face_img,name,udi,sex,sign,desc,place,fans,focus,birthday,level_info,regtime) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",(face_img,name,uid,sex,sign,desc,place,fans,focus,birthday,level_info,regtime))
+        except:
             pass
 def Get_Live_info():
     try:
@@ -110,18 +100,15 @@ def Get_Live_info():
             soup=BeautifulSoup(wb.text,'lxml')
             live_tag_select=soup.find_all('div',class_='live-tag')
             live_category=soup.find('a',class_='bili-link').text
-            cursor_live.execute("INSERT INTO LIVE_INFO(category) VALUES ('%s')" %(live_category))
             for result in live_tag_select:
                 if result:
-                    cursor_live.execute("INSERT INTO LIVE_INFO(TAG) VALUES ('%s')" %(result.get_text()))
+                    List_Tag=' '+result.text+' '
             live_info=json.loads(wb_data.decode('utf-8'))
             if live_info['code']!=-400:
                 fans=live_info['data']['FANS_COUNT']
                 name=live_info['data']['ANCHOR_NICK_NAME']
                 gift_counts=live_info['data']['RCOST']
-                cursor_live.execute("INSERT INTO LIVE_INFO(FANS) VALUES ('%s')" %(fans))
-                cursor_live.execute("INSERT INTO LIVE_INFO(NAME ) VALUES ('%s')" %(name))
-                cursor_live.execute("INSERT INTO LIVE_INFO(GIFTS) VALUES ('%s')" %(gift_counts))
+                cursor_live.execute("INSERT INTO LIVE_INFO(FANS,NAME,GIFTS,TAG,category) VALUES (?,?,?,?,?)",(fans,name,gift_counts,List_Tag,live_category))
     except:
         pass
 Procs=Process(target=Get_Live_info())
