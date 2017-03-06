@@ -56,47 +56,58 @@ headers={
     'Accept-Language':'zh-CN,zh;q=0.8,en;q=0.6'
 }
 def Get_user_info():
-    for User_counts in range(1,1000):
-        data_list={
-            'mid':User_counts,
-            '_':Get_time()
-        }
-        target_url='http://space.bilibili.com/ajax/member/GetInfo'
-        wb_data=requests.post(target_url,data=data_list,headers=headers)
-        '''
-        try:
-            wb_data=requests.post(target_url,data=data_list,headers=headers
-        except ConnectionError:
-            wb_data=requests.post(target_url,data=data_list,headers=headers,proxies=proxies)   这里挂代理行不通,水平有限修正不了.
-        '''
-        try:
+    try:
+        for User_counts in range(1,30000000):
+            data_list={
+                'mid':User_counts,
+                '_':Get_time()
+            }
+            target_url='http://space.bilibili.com/ajax/member/GetInfo'
+            wb_data=requests.post(target_url,data=data_list,headers=headers)
+            '''
+            try:
+                wb_data=requests.post(target_url,data=data_list,headers=headers
+            except ConnectionError:
+                wb_data=requests.post(target_url,data=data_list,headers=headers,proxies=proxies)   这里挂代理行不通,水平有限修正不了.
+            '''
             info_list=json.loads(wb_data.content.decode('utf-8'))
             if info_list['status']==True:
-                face_img=info_list['data']['face']
-                name=info_list['data']['name']
-                uid=info_list['data']['mid']
-                sex=info_list['data']['sex']
-                sign=info_list['data']['sign']
-                desc=info_list['data']['official_verify']['desc']
-                place=info_list['data']['place']
-                fans=info_list['data']['fans']
-                focus=info_list['data']['friend']
-                birthday=info_list['data']['birthday']
-                level_info=info_list['data']['level_info']['current_level']
-                regtime=time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(info_list['data']['regtime']))
-                cursor.execute("INSERT INTO USER_INFO(face_img,name,udi,sex,sign,desc,place,fans,focus,birthday,level_info,regtime) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",(face_img,name,uid,sex,sign,desc,place,fans,focus,birthday,level_info,regtime))
-        except :
-            '''print(str(e)+"is None")'''
-            pass
+                    face_img=info_list['data']['face']
+                    name=info_list['data']['name']
+                    uid=info_list['data']['mid']
+                    sex=info_list['data']['sex']
+                    sign=info_list['data']['sign']
+                    desc=info_list['data']['official_verify']['desc']
+                    fans=info_list['data']['fans']
+                    focus=info_list['data']['friend']
+                    level_info=info_list['data']['level_info']['current_level']
+                    if info_list['data']['place'] :
+                        place=info_list['data']['place']
+                    else:
+                        place='None'
+                    if info_list['data']['regtime']:
+                        regtime=time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(info_list['data']['regtime']))
+                    else:
+                        regtime='None'
+                    if info_list['data']['birthday']:
+                        birthday=info_list['data']['birthday']
+                    else:
+                        birthday='None'
+                    cursor.execute("INSERT INTO USER_INFO(face_img,name,udi,sex,sign,desc,place,fans,focus,birthday,level_info,regtime) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",(face_img,name,uid,sex,sign,desc,place,fans,focus,birthday,level_info,regtime))
+    except Exception as e:
+        print (e)
 def Get_Live_info():
     try:
-        for roomid in range(1001,1201):
+        for roomid in range(1001,1000000):
             List_Tag=[]
             wb_data=requests.get(live_url.format(roomid)).content
             wb=requests.get(live_tag.format(roomid),headers=HEADER)
             soup=BeautifulSoup(wb.text,'lxml')
             live_tag_select=soup.find_all('div',class_='live-tag')
-            live_category=soup.find('a',class_='bili-link').text
+            if soup.find('a',class_='bili-link'):
+                live_category=soup.find('a',class_='bili-link').text
+            else:
+                live_category='None'
             if live_tag_select:
                 for result in live_tag_select:
                     if result:
@@ -110,18 +121,18 @@ def Get_Live_info():
                 cursor_live.execute("INSERT INTO LIVE_INFO(FANS,NAME,GIFTS,TAG,category) VALUES (?,?,?,?,?)",(fans,name,gift_counts,TAGS,live_category))
             List_Tag=[]
             TAGS=''
-    except:
-        pass
+    except Exception as e:
+        print(e)
 Procs=Process(target=Get_Live_info())
-#p=Process(target=Get_user_info())
+p=Process(target=Get_user_info())
 Procs.start()
-#p.start()
+p.start()
 Procs.join()
-#p.join()
+p.join()
 '''
-proxies_cursor.close()
-proxies_conn.commit()
-proxies_conn.close()
+    proxies_cursor.close()
+    proxies_conn.commit()
+    proxies_conn.close()
 '''
 cursor_live.close()
 conn_live.commit()
