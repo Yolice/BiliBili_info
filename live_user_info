@@ -81,7 +81,7 @@ def Get_user_info():
                     fans=info_list['data']['fans']
                     focus=info_list['data']['friend']
                     level_info=info_list['data']['level_info']['current_level']
-                    if info_list['data']['place'] :
+                    if info_list['data']['place'] :    ##考虑到短路求值的特性没有用逻辑运算
                         place=info_list['data']['place']
                     else:
                         place='None'
